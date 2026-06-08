@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-density="cozy">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ChartClock — KLM-GOMS Nursing Documentation Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ── Theme tokens ──────────────────────────────────────────── */
+:root {
+  --accent-user: #2563eb;
+  --bg: oklch(0.985 0.003 256);
+  --surface: #ffffff;
+  --surface-2: oklch(0.972 0.004 256);
+  --surface-3: oklch(0.955 0.005 256);
+  --ink: oklch(0.26 0.016 260);
+  --muted: oklch(0.52 0.018 260);
+  --faint: oklch(0.66 0.014 260);
+  --line: oklch(0.912 0.006 260);
+  --line-strong: oklch(0.84 0.009 260);
+  --accent: var(--accent-user, oklch(0.55 0.155 252));
+  --accent-ink: #ffffff;
+  --accent-weak: color-mix(in oklab, var(--accent) 12%, var(--surface));
+  --accent-line: color-mix(in oklab, var(--accent) 38%, var(--line));
+  --op-K: oklch(0.56 0.15 255);
+  --op-P: oklch(0.56 0.16 322);
+  --op-H: oklch(0.57 0.16 28);
+  --op-M: oklch(0.55 0.13 150);
+  --op-B: oklch(0.60 0.105 215);
+  --shadow: 0 1px 2px rgba(15,23,42,.05), 0 1px 1px rgba(15,23,42,.04);
+  --shadow-lg: 0 12px 32px -12px rgba(15,23,42,.22);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --gap: 20px;
+  --row-h: 38px;
+  --fs: 14.5px;
+}
+[data-theme="dark"] {
+  --bg: oklch(0.205 0.012 262);
+  --surface: oklch(0.252 0.014 262);
+  --surface-2: oklch(0.285 0.015 262);
+  --surface-3: oklch(0.315 0.015 262);
+  --ink: oklch(0.945 0.008 262);
+  --muted: oklch(0.72 0.014 262);
+  --faint: oklch(0.58 0.014 262);
+  --line: oklch(0.36 0.013 262);
+  --line-strong: oklch(0.45 0.015 262);
+  --accent: color-mix(in oklab, var(--accent-user, oklch(0.62 0.16 252)) 76%, white);
+  --accent-ink: oklch(0.18 0.02 262);
+  --accent-weak: color-mix(in oklab, var(--accent) 16%, var(--surface));
+  --accent-line: color-mix(in oklab, var(--accent) 42%, var(--line));
+  --op-K: oklch(0.70 0.14 255);
+  --op-P: oklch(0.72 0.15 322);
+  --op-H: oklch(0.71 0.15 28);
+  --op-M: oklch(0.72 0.13 150);
+  --op-B: oklch(0.75 0.10 215);
+  --shadow: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-lg: 0 16px 40px -14px rgba(0,0,0,.6);
+}
+[data-density="compact"] { --gap: 13px; --row-h: 32px; --fs: 13.5px; }
+
+/* ── Operator color vars ───────────────────────────────────── */
+.op-K { --seg: var(--op-K); }
+.op-P { --seg: var(--op-P); }
+.op-H { --seg: var(--op-H); }
+.op-M { --seg: var(--op-M); }
+.op-B { --seg: var(--op-B); }
+
+/* ── Base ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+/* ── Layout ───────────────────────────────────────────────── */
+.app { max-width: 1200px; margin: 0 auto; padding: 34px 28px 96px; }
+.stack { display: flex; flex-direction: column; gap: var(--gap); }
+
+/* ── Header ───────────────────────────────────────────────── */
+.app-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 24px; margin-bottom: 26px; flex-wrap: wrap;
+}
+.brand h1 { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; margin: 0; line-height: 1.1; }
+.brand .tag { color: var(--muted); margin-top: 6px; font-size: 14px; max-width: 56ch; }
+.brand .kbd-row { display: flex; gap: 6px; margin-top: 12px; }
+.opbadge {
+  font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 12px;
+  width: 26px; height: 26px; display: grid; place-items: center;
+  border-radius: 6px; background: var(--seg); color: #fff;
+}
+[data-theme="dark"] .opbadge { color: oklch(0.18 0.02 262); }
+
+/* ── Toolbar / buttons ────────────────────────────────────── */
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  appearance: none; border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--ink); font: inherit; font-size: 13px; font-weight: 500;
+  height: 34px; padding: 0 13px; border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  transition: background .12s, border-color .12s, transform .04s;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--faint); }
+.btn:active { transform: translateY(1px); }
+.btn svg { width: 15px; height: 15px; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.ghost:hover { background: var(--surface-2); color: var(--ink); }
+.btn.sm { height: 29px; font-size: 12.5px; padding: 0 10px; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+/* ── Cards ────────────────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.card-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 14px 18px;
+}
+.card-hd h2 {
+  margin: 0; font-size: 13px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
+}
+.card-bd { padding: 4px 18px 18px; }
+.sub { color: var(--faint); font-size: 12.5px; }
+
+/* ── Overview collapsible ─────────────────────────────────── */
+.collapse-hd {
+  width: 100%; text-align: left; cursor: pointer; background: transparent;
+  border: 0; font: inherit; color: inherit;
+  display: flex; align-items: center; gap: 11px; padding: 15px 18px;
+}
+.collapse-hd .chev { transition: transform .2s; color: var(--faint); }
+.collapse-hd[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.collapse-hd h2 {
+  margin: 0; font-size: 15px; font-weight: 600;
+  letter-spacing: -0.01em; text-transform: none; color: var(--ink);
+}
+.collapse-bd { padding: 0 18px 20px; }
+.ov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+@media (max-width: 760px) { .ov-grid { grid-template-columns: 1fr; } }
+.ov-grid h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.ov-grid p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; }
+.steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; counter-reset: s; }
+.steps li {
+  padding-left: 30px; position: relative;
+  color: var(--muted); font-size: 13.5px; counter-increment: s;
+}
+.steps li::before {
+  content: counter(s); position: absolute; left: 0; top: 1px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent-weak); color: var(--accent);
+  font-size: 11px; font-weight: 600; display: grid; place-items: center;
+  font-family: "IBM Plex Mono", monospace;
+}
+[data-theme="dark"] .steps li::before { color: var(--ink); }
+
+/* ── Operator table ───────────────────────────────────────── */
+table.grid { width: 100%; border-collapse: collapse; }
+table.grid th {
+  text-align: left; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--faint); padding: 8px 10px; border-bottom: 1px solid var(--line);
+}
+table.grid td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.grid tr:last-child td { border-bottom: 0; }
+.op-cell { display: flex; align-items: center; gap: 10px; }
+.op-dot { width: 11px; height: 11px; border-radius: 3px; background: var(--seg); flex-shrink: 0; }
+.op-name { font-weight: 600; }
+.op-letter { font-family: "IBM Plex Mono", monospace; font-weight: 600; }
+
+/* ── Time input ───────────────────────────────────────────── */
+.tinput {
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--line-strong); border-radius: 7px;
+  background: var(--surface); overflow: hidden; height: 32px; width: 108px;
+}
+.tinput input {
+  width: 100%; border: 0; background: transparent; font: inherit;
+  font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;
+  text-align: right; padding: 0 7px; color: inherit; outline: none;
+  -moz-appearance: textfield;
+}
+.tinput input::-webkit-inner-spin-button,
+.tinput input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.tinput .unit { padding: 0 9px 0 2px; color: var(--faint); font-size: 12px; }
+.tinput:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+
+select.sel {
+  appearance: none; border: 1px solid var(--line-strong); background: var(--surface);
+  color: inherit; font: inherit; font-size: 13px; height: 32px;
+  padding: 0 30px 0 10px; border-radius: 7px; cursor: pointer; outline: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%2394a3b8' d='M0 0h10L5 6z'/></svg>");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+select.sel:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+
+/* ── Sequences ────────────────────────────────────────────── */
+.seq-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: var(--gap);
+  align-items: start;
+}
+.seq-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--line);
+}
+.seq-name {
+  border: 0; background: transparent; font: inherit; font-weight: 600;
+  font-size: 15px; color: var(--ink); width: 100%; outline: none;
+  border-radius: 6px; padding: 3px 6px; margin: -3px -6px;
+}
+.seq-name:hover { background: var(--surface-2); }
+.seq-name:focus { background: var(--surface-2); box-shadow: 0 0 0 2px var(--accent-weak); }
+
+/* ── Step rows ────────────────────────────────────────────── */
+.step-list { display: flex; flex-direction: column; }
+.step {
+  display: grid; grid-template-columns: 30px auto 1fr auto;
+  align-items: center; gap: 10px; padding: 7px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.step:hover { background: var(--surface-2); }
+.step-idx { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--faint); text-align: right; }
+.step-op { display: inline-flex; align-items: center; }
+.step-note {
+  border: 1px solid transparent; background: transparent; font: inherit;
+  font-size: 13px; color: var(--ink); width: 100%; outline: none;
+  border-radius: 6px; padding: 5px 8px;
+}
+.step-note::placeholder { color: var(--faint); }
+.step-note:hover { background: var(--surface); border-color: var(--line); }
+.step-note:focus { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-weak); }
+.step-time { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--muted); min-width: 46px; text-align: right; }
+.step-acts { display: flex; gap: 2px; }
+.istep {
+  appearance: none; border: 0; background: transparent; color: var(--faint);
+  width: 24px; height: 24px; border-radius: 6px; cursor: pointer;
+  display: grid; place-items: center;
+}
+.istep:hover { background: var(--surface-3); color: var(--ink); }
+.istep:disabled { opacity: .3; cursor: default; }
+.istep svg { width: 14px; height: 14px; }
+.seq-foot {
+  padding: 11px 16px; display: flex; align-items: center;
+  gap: 9px; flex-wrap: wrap; border-top: 1px solid var(--line);
+}
+.quick-add { display: flex; gap: 5px; }
+.qa {
+  appearance: none; border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--ink); cursor: pointer; width: 30px; height: 30px; border-radius: 7px;
+  font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 13px;
+  display: grid; place-items: center;
+  transition: background .1s, transform .04s; position: relative;
+}
+.qa::before {
+  content: ""; position: absolute; left: 6px; right: 6px; bottom: 4px;
+  height: 2px; border-radius: 2px; background: var(--seg);
+}
+.qa:hover { background: var(--accent-weak); }
+.qa:active { transform: translateY(1px); }
+.empty { padding: 24px 16px; text-align: center; color: var(--faint); font-size: 13px; }
+
+/* ── Totals + breakdown ───────────────────────────────────── */
+.seq-total {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; padding: 13px 16px; background: var(--surface-2);
+  border-top: 1px solid var(--line);
+}
+.seq-total .lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.seq-total .big { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 26px; letter-spacing: -0.02em; color: var(--ink); }
+.seq-total .big .u { font-size: 14px; color: var(--faint); font-weight: 500; margin-left: 3px; }
+.seq-total .min { font-size: 12px; color: var(--faint); margin-left: 8px; }
+.bd { padding: 13px 16px; border-top: 1px solid var(--line); }
+.bdbar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--surface-3); }
+.bdbar i { display: block; background: var(--seg); }
+.bdlegend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 12px; }
+.bdrow { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.bdrow .op-dot { width: 9px; height: 9px; }
+.bdrow .c { color: var(--faint); font-family: "IBM Plex Mono", monospace; font-size: 11.5px; }
+.bdrow .v { margin-left: auto; font-family: "IBM Plex Mono", monospace; color: var(--muted); }
+
+/* ── Comparison ───────────────────────────────────────────── */
+.cmp-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 14px;
+  align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line);
+}
+.cmp-row:last-child { border-bottom: 0; }
+.cmp-name { font-weight: 600; font-size: 14px; }
+.cmp-meta { color: var(--faint); font-size: 12px; }
+.cmp-track {
+  height: 24px; background: var(--surface-3); border-radius: 6px;
+  overflow: hidden; display: flex;
+  width: clamp(120px, 26vw, 320px);
+}
+.cmp-track i { background: var(--seg); display: block; }
+.cmp-val { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 15px; min-width: 74px; text-align: right; }
+
+/* ── Section label ────────────────────────────────────────── */
+.section-label {
+  font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 10px; margin: 4px 2px 0;
+}
+.section-label .ln { flex: 1; height: 1px; background: var(--line); }
+
+/* ── Toast ────────────────────────────────────────────────── */
+.toast {
+  position: fixed; left: 50%; bottom: 26px;
+  transform: translateX(-50%) translateY(20px); opacity: 0;
+  background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 500;
+  padding: 9px 16px; border-radius: 8px; box-shadow: var(--shadow-lg);
+  pointer-events: none; transition: opacity .2s, transform .2s; z-index: 40;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Footer ───────────────────────────────────────────────── */
+.foot { margin-top: 34px; color: var(--faint); font-size: 12px; line-height: 1.6; }
+
+/* ── Print ────────────────────────────────────────────────── */
+@media print {
+  @page { margin: 14mm; }
+  body { background: #fff; --bg: #fff; --surface: #fff; --surface-2: #fff; --surface-3: #f4f4f5; }
+  .no-print { display: none !important; }
+  .app { padding: 0; max-width: none; }
+  .card { box-shadow: none; border-color: #d4d4d8; break-inside: avoid; }
+  .seq-wrap { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
+
+<script>
+/* ── KLM Data ──────────────────────────────────────────────────────────── */
+const KLM_OPERATORS = [
+  { code:'K', name:'Keystroke', desc:'Press a single key or keyboard button (e.g. typing a value, Tab, Enter). Time depends on typist skill.', def:0.20 },
+  { code:'P', name:'Point',     desc:'Move the pointer to a target on screen (a field, button, or menu item). Governed by Fitts\u2019s law.', def:1.10 },
+  { code:'H', name:'Home',      desc:'Move the hand(s) between the keyboard and the mouse (or other input device) and back.', def:0.40 },
+  { code:'M', name:'Mental act',desc:'Pause to think, decide, or locate the next target \u2014 the cognitive step before a physical action.', def:1.35 },
+  { code:'B', name:'Button press',desc:'Press or release a mouse button. A full click is two B operators (press + release).', def:0.10 },
+];
+const KLM_ORDER = KLM_OPERATORS.map(o => o.code);
+const KLM_BY_CODE = Object.fromEntries(KLM_OPERATORS.map(o => [o.code, o]));
+const KLM_DEFAULT_TIMES = Object.fromEntries(KLM_OPERATORS.map(o => [o.code, o.def]));
+
+const K_PRESETS = [
+  { label:'Best typist (135 wpm)', value:0.08 },
+  { label:'Good typist (90 wpm)', value:0.12 },
+  { label:'Skilled average (55 wpm)', value:0.20 },
+  { label:'Average non-secretary (40 wpm)', value:0.28 },
+  { label:'Typing random letters', value:0.50 },
+  { label:'Typing complex codes', value:0.75 },
+  { label:'Worst / unfamiliar keyboard', value:1.20 },
+];
+
+let __uid = 0;
+function klmId(prefix) { __uid++; return (prefix||'id') + '-' + Date.now().toString(36) + '-' + __uid; }
+function newStep(op) { return { id:klmId('step'), op:op||'M', note:'' }; }
+function newSequence(name, steps) { return { id:klmId('seq'), name:name||'Untitled task', steps:steps||[] }; }
+
+function computeSequence(steps, times) {
+  const perOp = {};
+  KLM_ORDER.forEach(c => { perOp[c] = { count:0, subtotal:0 }; });
+  let total = 0;
+  steps.forEach(s => {
+    const t = Number(times[s.op]) || 0;
+    perOp[s.op].count++;
+    perOp[s.op].subtotal += t;
+    total += t;
+  });
+  return { total, perOp, count: steps.length };
+}
+
+function fmtSec(s) { return (Math.round(s * 100) / 100).toFixed(2); }
+function fmtMinSec(s) {
+  const m = Math.floor(s / 60), rem = s - m * 60;
+  if (m <= 0) return fmtSec(s) + 's';
+  return m + 'm ' + fmtSec(rem) + 's';
+}
+
+function csvEscape(v) {
+  const str = String(v == null ? '' : v);
+  return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+}
+function csvRow(cells) { return cells.map(csvEscape).join(','); }
+
+function buildCSV(model) {
+  const { times, sequences } = model;
+  const lines = [];
+  lines.push(csvRow(['KLM-GOMS Calculator \u2014 Results']), '');
+  lines.push(csvRow(['Operator settings']), csvRow(['Operator','Name','Time (s)','Description']));
+  KLM_OPERATORS.forEach(o => lines.push(csvRow([o.code, o.name, fmtSec(times[o.code]), o.desc])));
+  lines.push('');
+  sequences.forEach(seq => {
+    const r = computeSequence(seq.steps, times);
+    lines.push(csvRow(['Task: ' + seq.name]), csvRow(['#','Operator','Name','Note','Time (s)']));
+    seq.steps.forEach((s,i) => {
+      const o = KLM_BY_CODE[s.op];
+      lines.push(csvRow([i+1, s.op, o.name, s.note, fmtSec(times[s.op])]));
+    });
+    lines.push(csvRow(['','','','Total (s)', fmtSec(r.total)]), '');
+    lines.push(csvRow(['Breakdown','Count','Subtotal (s)']));
+    KLM_ORDER.forEach(c => {
+      if (r.perOp[c].count > 0)
+        lines.push(csvRow([c + ' \u2014 ' + KLM_BY_CODE[c].name, r.perOp[c].count, fmtSec(r.perOp[c].subtotal)]));
+    });
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
+function buildText(model) {
+  const { times, sequences } = model;
+  const out = ['KLM-GOMS Calculator \u2014 Results', '', 'Operator settings (seconds):'];
+  KLM_OPERATORS.forEach(o => out.push('  ' + o.code + '  ' + o.name.padEnd(13) + fmtSec(times[o.code]) + ' s'));
+  out.push('');
+  sequences.forEach(seq => {
+    const r = computeSequence(seq.steps, times);
+    out.push('\u2500\u2500 ' + seq.name + ' \u2500\u2500');
+    out.push('  Sequence: ' + (seq.steps.map(s=>s.op).join(' ') || '(empty)'));
+    out.push('  Steps: ' + r.count + '   Total: ' + fmtSec(r.total) + ' s  (' + fmtMinSec(r.total) + ')');
+    const parts = KLM_ORDER.filter(c=>r.perOp[c].count>0).map(c=>c+'\xd7'+r.perOp[c].count+'='+fmtSec(r.perOp[c].subtotal)+'s');
+    if (parts.length) out.push('  Breakdown: ' + parts.join('   '));
+    out.push('');
+  });
+  return out.join('\n');
+}
+
+function downloadFile(filename, content, mime) {
+  const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function seedSequences() {
+  const mk = (op, note) => ({ ...newStep(op), note });
+  return [newSequence('Example \u2014 document one vital sign', [
+    mk('M','decide to enter vitals'),
+    mk('H','move hand to mouse'),
+    mk('P','point to flowsheet tab'),
+    mk('B','press mouse button'),
+    mk('B','release (click)'),
+    mk('M','locate temperature cell'),
+    mk('P','point to cell'),
+    mk('B','press'), mk('B','release'),
+    mk('H','move hand to keyboard'),
+    mk('K','type 9'), mk('K','type 8'), mk('K','type .'), mk('K','type 6'),
+    mk('K','press Enter'),
+  ])];
+}
+
+const LS_KEY = 'klm-goms-state-v1';
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) { const s = JSON.parse(raw); if (s && s.times && Array.isArray(s.sequences)) return s; }
+  } catch(e) {}
+  return { times: { ...KLM_DEFAULT_TIMES }, sequences: seedSequences(), overview: true };
+}
+</script>
+
+<script>
+/* ── React app (no JSX — plain createElement) ──────────────────────────── */
+const { createElement: h, useState, useEffect, useRef, useCallback, Fragment } = React;
+
+/* ── SVG icon helper ─────────────────────────────────────────────────── */
+function Icon({ paths, size=16, sw=1.7 }) {
+  return h('svg', {
+    width: size, height: size, viewBox: '0 0 24 24',
+    fill: 'none', stroke: 'currentColor', strokeWidth: sw,
+    strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
+  }, ...(Array.isArray(paths) ? paths : [paths]).map((d,i) => h('path', { key:i, d })));
+}
+const Ico = {
+  copy:  () => h(Icon, { paths:['M9 9h10v10H9z','M5 15H4V5h10v1'] }),
+  csv:   () => h(Icon, { paths:['M12 3v12','M8 11l4 4 4-4','M5 21h14'] }),
+  print: () => h(Icon, { paths:['M7 9V3h10v6','M7 19H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2','M7 15h10v6H7z'] }),
+  image: () => h(Icon, { paths:['M3 5h18v14H3z','M3 16l5-5 4 4 3-3 6 6'] }),
+  plus:  () => h(Icon, { paths:'M12 5v14M5 12h14' }),
+  trash: () => h(Icon, { paths:['M4 7h16','M9 7V5h6v2','M7 7l1 13h8l1-13'], sw:1.6 }),
+  up:    () => h(Icon, { paths:'M6 14l6-6 6 6' }),
+  down:  () => h(Icon, { paths:'M6 10l6 6 6-6' }),
+  chev:  () => h(Icon, { paths:'M9 6l6 6-6 6', size:16 }),
+  reset: () => h(Icon, { paths:['M3 12a9 9 0 1 0 3-6.7','M3 4v4h4'] }),
+  dup:   () => h(Icon, { paths:['M9 9h10v10H9z','M5 15H4V5h10v1'], sw:1.6 }),
+  info:  () => h(Icon, { paths:['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z','M12 11v5','M12 8h.01'] }),
+};
+
+/* ── TimeInput ───────────────────────────────────────────────────────── */
+function TimeInput({ value, onChange }) {
+  const [txt, setTxt] = useState(String(value));
+  const focused = useRef(false);
+  useEffect(() => { if (!focused.current) setTxt(String(value)); }, [value]);
+  const commit = raw => {
+    let n = parseFloat(raw);
+    if (isNaN(n)) n = 0;
+    n = Math.max(0, Math.min(30, n));
+    onChange(Math.round(n * 1000) / 1000);
+  };
+  return h('span', { className:'tinput' },
+    h('input', {
+      type:'number', inputMode:'decimal', step:0.05, min:0, max:30,
+      value: txt,
+      onFocus: () => { focused.current = true; },
+      onChange: e => { setTxt(e.target.value); commit(e.target.value); },
+      onBlur: () => { focused.current = false; setTxt(String(value)); },
+    }),
+    h('span', { className:'unit' }, 's')
+  );
+}
+
+/* ── ModelOverview ───────────────────────────────────────────────────── */
+function ModelOverview({ open, onToggle }) {
+  return h('div', { className:'card no-print' },
+    h('button', { className:'collapse-hd', 'aria-expanded': String(open), onClick: onToggle },
+      h('span', { className:'chev' }, h(Ico.chev)),
+      h('h2', null, 'About the KLM-GOMS model & how to use this tool'),
+      h('span', { style:{ marginLeft:'auto', color:'var(--faint)' } }, h(Ico.info))
+    ),
+    open && h('div', { className:'collapse-bd' },
+      h('div', { className:'ov-grid' },
+        h('div', null,
+          h('h3', null, 'The model'),
+          h('p', null, 'The ', h('strong', null, 'Keystroke-Level Model'), ' (KLM), part of the GOMS family (Card, Moran & Newell, 1983), estimates how long an expert user takes to complete a routine task with no errors. The task is broken into a sequence of primitive ', h('strong', null, 'operators'), ', each with an empirically-derived duration.'),
+          h('p', null, 'Total time is simply the sum of every operator in the sequence. Applied to the EHR, it predicts how long a charting workflow takes ', h('em', null, 'before'), ' you build or buy it \u2014 useful for comparing screen designs or documentation pathways.')
+        ),
+        h('div', null,
+          h('h3', null, 'How to use it'),
+          h('ol', { className:'steps' },
+            h('li', null, 'Review the five operators below and adjust any ', h('strong', null, 'times'), ' to match your setting (or pick a typist skill for K).'),
+            h('li', null, 'In a task card, add a ', h('strong', null, 'step'), ' for each operator a nurse performs, in order. Use the K\xb7P\xb7H\xb7M\xb7B buttons or the row dropdowns.'),
+            h('li', null, 'Read the ', h('strong', null, 'total time'), ' and per-operator breakdown that update live.'),
+            h('li', null, 'Add more task cards to ', h('strong', null, 'compare'), ' alternative workflows side by side, then ', h('strong', null, 'export'), ' your results.')
+          )
+        )
+      )
+    )
+  );
+}
+
+/* ── OperatorTable ───────────────────────────────────────────────────── */
+function OperatorTable({ times, setTime, onReset }) {
+  const kMatch = K_PRESETS.find(p => Math.abs(p.value - times.K) < 0.0001);
+  return h('div', { className:'card' },
+    h('div', { className:'card-hd' },
+      h('h2', null, 'Operators & time settings'),
+      h('button', { className:'btn ghost sm no-print', onClick:onReset, title:'Restore standard KLM defaults' },
+        h(Ico.reset), ' Reset defaults'
+      )
+    ),
+    h('div', { className:'card-bd', style:{ overflowX:'auto' } },
+      h('table', { className:'grid' },
+        h('thead', null, h('tr', null,
+          h('th', { style:{ width:'20%' } }, 'Operator'),
+          h('th', null, 'Description'),
+          h('th', { style:{ width:'130px' } }, 'Time')
+        )),
+        h('tbody', null, KLM_OPERATORS.map(o =>
+          h('tr', { key:o.code },
+            h('td', null,
+              h('div', { className:'op-cell op-' + o.code },
+                h('span', { className:'op-dot' }),
+                h('span', null,
+                  h('span', { className:'op-letter' }, o.code),
+                  '\u00a0\u00a0',
+                  h('span', { className:'op-name' }, o.name)
+                )
+              )
+            ),
+            h('td', { style:{ color:'var(--muted)', fontSize:'13.5px', maxWidth:'52ch' } },
+              o.desc,
+              o.code === 'K' && h('span', { className:'no-print', style:{ display:'block', marginTop:'8px' } },
+                h('select', {
+                  className:'sel', style:{ height:'30px', fontSize:'12.5px' },
+                  value: kMatch ? String(kMatch.value) : 'custom',
+                  onChange: e => { if (e.target.value !== 'custom') setTime('K', parseFloat(e.target.value)); }
+                },
+                  !kMatch && h('option', { value:'custom' }, 'Custom value'),
+                  K_PRESETS.map(p => h('option', { key:p.value, value:String(p.value) }, p.label + ' \u2014 ' + p.value.toFixed(2) + 's'))
+                )
+              )
+            ),
+            h('td', null,
+              h(TimeInput, { value:times[o.code], onChange:v => setTime(o.code, v) })
+            )
+          )
+        ))
+      )
+    )
+  );
+}
+
+/* ── Breakdown ───────────────────────────────────────────────────────── */
+function Breakdown({ result }) {
+  if (result.total <= 0) return null;
+  const active = KLM_ORDER.filter(c => result.perOp[c].count > 0);
+  return h('div', { className:'bd' },
+    h('div', { className:'bdbar' },
+      active.map(c => h('i', { key:c, className:'op-' + c,
+        style:{ width:(result.perOp[c].subtotal / result.total * 100) + '%', background:'var(--seg)' } }))
+    ),
+    h('div', { className:'bdlegend' },
+      active.map(c => h('div', { key:c, className:'bdrow op-' + c },
+        h('span', { className:'op-dot' }),
+        h('span', null, h('span', { className:'mono', style:{ fontWeight:600 } }, c), ' ', KLM_BY_CODE[c].name),
+        h('span', { className:'c' }, '\xd7' + result.perOp[c].count),
+        h('span', { className:'v' }, fmtSec(result.perOp[c].subtotal) + 's')
+      ))
+    )
+  );
+}
+
+/* ── StepRow ─────────────────────────────────────────────────────────── */
+function StepRow({ step, idx, total, time, onChange, onRemove, onMove }) {
+  return h('div', { className:'step' },
+    h('span', { className:'step-idx' }, idx + 1),
+    h('span', { className:'step-op op-' + step.op },
+      h('span', { className:'op-dot' }),
+      h('select', {
+        className:'sel', style:{ height:'30px', paddingRight:'26px' },
+        value: step.op,
+        onChange: e => onChange({ ...step, op:e.target.value })
+      }, KLM_OPERATORS.map(o => h('option', { key:o.code, value:o.code }, o.code + ' \u2014 ' + o.name)))
+    ),
+    h('input', {
+      className:'step-note',
+      placeholder:'Optional note (e.g. \u201copen vitals flowsheet\u201d)',
+      value: step.note,
+      onChange: e => onChange({ ...step, note:e.target.value })
+    }),
+    h('div', { style:{ display:'flex', alignItems:'center', gap:'6px' } },
+      h('span', { className:'step-time mono' }, fmtSec(time) + 's'),
+      h('div', { className:'step-acts no-print' },
+        h('button', { className:'istep', title:'Move up', disabled:idx===0, onClick:()=>onMove(idx,-1) }, h(Ico.up)),
+        h('button', { className:'istep', title:'Move down', disabled:idx===total-1, onClick:()=>onMove(idx,1) }, h(Ico.down)),
+        h('button', { className:'istep', title:'Remove step', onClick:()=>onRemove(step.id) }, h(Ico.trash))
+      )
+    )
+  );
+}
+
+/* ── SequenceCard ────────────────────────────────────────────────────── */
+function SequenceCard({ seq, times, showChart, showMinutes, canRemove, onChange, onRemove, onDuplicate }) {
+  const result = computeSequence(seq.steps, times);
+  const setSteps = steps => onChange({ ...seq, steps });
+  const addStep = op => setSteps([...seq.steps, newStep(op)]);
+  const updateStep = s => setSteps(seq.steps.map(x => x.id === s.id ? s : x));
+  const removeStep = id => setSteps(seq.steps.filter(x => x.id !== id));
+  const moveStep = (i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= seq.steps.length) return;
+    const next = seq.steps.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    setSteps(next);
+  };
+  return h('div', { className:'card seq-card' },
+    h('div', { className:'seq-head' },
+      h('input', {
+        className:'seq-name', value:seq.name, 'aria-label':'Task name',
+        onChange: e => onChange({ ...seq, name:e.target.value })
+      }),
+      h('div', { className:'step-acts no-print' },
+        h('button', { className:'istep', title:'Duplicate task', onClick:()=>onDuplicate(seq.id) }, h(Ico.dup)),
+        h('button', { className:'istep', title:'Delete task', disabled:!canRemove, onClick:()=>onRemove(seq.id) }, h(Ico.trash))
+      )
+    ),
+    h('div', { className:'step-list' },
+      seq.steps.length === 0 && h('div', { className:'empty' }, 'No steps yet. Add operators below to build the workflow.'),
+      seq.steps.map((s, i) => h(StepRow, {
+        key:s.id, step:s, idx:i, total:seq.steps.length, time:times[s.op],
+        onChange:updateStep, onRemove:removeStep, onMove:moveStep
+      }))
+    ),
+    h('div', { className:'seq-foot no-print' },
+      h('span', { className:'sub', style:{ marginRight:'2px' } }, 'Add:'),
+      h('div', { className:'quick-add' },
+        KLM_ORDER.map(c => h('button', { key:c, className:'qa op-' + c, title:'Add ' + KLM_BY_CODE[c].name, onClick:()=>addStep(c) }, c))
+      ),
+      h('button', { className:'btn sm', style:{ marginLeft:'auto' }, onClick:()=>addStep('M') },
+        h(Ico.plus, { size:14 }), ' Add step'
+      )
+    ),
+    h('div', { className:'seq-total' },
+      h('span', { className:'lbl' }, 'Total time'),
+      h('span', null,
+        h('span', { className:'big' }, fmtSec(result.total), h('span', { className:'u' }, 's')),
+        showMinutes && result.total >= 60 && h('span', { className:'min' }, '(' + fmtMinSec(result.total) + ')'),
+        h('span', { className:'min' }, '\xb7 ' + result.count + ' steps')
+      )
+    ),
+    showChart && h(Breakdown, { result })
+  );
+}
+
+/* ── ComparisonPanel ─────────────────────────────────────────────────── */
+function ComparisonPanel({ sequences, times, showMinutes }) {
+  const results = sequences.map(s => ({ seq:s, r:computeSequence(s.steps, times) }));
+  const maxTotal = Math.max(1, ...results.map(x => x.r.total));
+  return h('div', { className:'card' },
+    h('div', { className:'card-hd' },
+      h('h2', null, 'Comparison'),
+      h('span', { className:'sub' }, sequences.length + ' tasks')
+    ),
+    h('div', { className:'card-bd' },
+      results.map(({ seq, r }) => {
+        const active = KLM_ORDER.filter(c => r.perOp[c].count > 0);
+        return h('div', { className:'cmp-row', key:seq.id },
+          h('div', { style:{ minWidth:0 } },
+            h('div', { className:'cmp-name', style:{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' } }, seq.name),
+            h('div', { className:'cmp-meta' }, r.count + ' steps' + (showMinutes && r.total >= 60 ? ' \xb7 ' + fmtMinSec(r.total) : ''))
+          ),
+          h('div', { style:{ display:'flex', alignItems:'center', gap:'12px' } },
+            h('div', { className:'cmp-track' },
+              active.map(c => h('i', { key:c, className:'op-' + c,
+                style:{ width:(r.perOp[c].subtotal / maxTotal * 100) + '%', background:'var(--seg)' } }))
+            ),
+            h('span', { className:'cmp-val' }, fmtSec(r.total) + 's')
+          )
+        );
+      })
+    )
+  );
+}
+
+/* ── SequencesRegion ─────────────────────────────────────────────────── */
+function SequencesRegion({ sequences, times, updateSeq, removeSeq, dupSeq, addSeq }) {
+  return h(Fragment, null,
+    h('div', { className:'section-label' },
+      'Workflows\u00a0',
+      h('span', { className:'ln' }),
+      h('button', { className:'btn sm no-print', onClick:addSeq },
+        h(Ico.plus, { size:14 }), ' Add task'
+      )
+    ),
+    h('div', { className:'seq-wrap' },
+      sequences.map(seq => h(SequenceCard, {
+        key:seq.id, seq, times,
+        showChart: true, showMinutes: true,
+        canRemove: sequences.length > 1,
+        onChange: updateSeq, onRemove: removeSeq, onDuplicate: dupSeq
+      }))
+    ),
+    sequences.length > 1 && h(ComparisonPanel, { sequences, times, showMinutes:true })
+  );
+}
+
+/* ── App ─────────────────────────────────────────────────────────────── */
+function App() {
+  const init = useRef(loadState()).current;
+  const [times, setTimes] = useState(init.times);
+  const [sequences, setSequences] = useState(init.sequences);
+  const [overview, setOverview] = useState(init.overview);
+  const [toast, setToast] = useState('');
+  const [busy, setBusy] = useState('');
+  const captureRef = useRef(null);
+  const toastTimer = useRef(null);
+
+  // Persist to localStorage
+  useEffect(() => {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ times, sequences, overview })); } catch(e) {}
+  }, [times, sequences, overview]);
+
+  const flash = msg => {
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 1900);
+  };
+
+  const setTime = (code, v) => setTimes(p => ({ ...p, [code]:v }));
+  const resetTimes = () => { setTimes({ ...KLM_DEFAULT_TIMES }); flash('Operator times reset to KLM defaults'); };
+
+  const updateSeq = s => setSequences(p => p.map(x => x.id === s.id ? s : x));
+  const removeSeq = id => setSequences(p => p.filter(x => x.id !== id));
+  const addSeq = () => setSequences(p => [...p, newSequence('Task ' + (p.length + 1), [])]);
+  const dupSeq = id => setSequences(p => {
+    const i = p.findIndex(x => x.id === id);
+    if (i < 0) return p;
+    const src = p[i];
+    const copy = newSequence(src.name + ' (copy)', src.steps.map(s => ({ ...newStep(s.op), note:s.note })));
+    const next = p.slice();
+    next.splice(i + 1, 0, copy);
+    return next;
+  });
+
+  const model = { times, sequences };
+
+  // ── Exports ──
+  const doCopy = async () => {
+    const text = buildText(model);
+    try {
+      await navigator.clipboard.writeText(text);
+      flash('Results copied to clipboard');
+    } catch(e) {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); flash('Results copied to clipboard'); }
+      catch(_) { flash('Copy failed \u2014 select & copy manually'); }
+      document.body.removeChild(ta);
+    }
+  };
+  const doCSV = () => { downloadFile('klm-goms-results.csv', buildCSV(model), 'text/csv;charset=utf-8'); flash('CSV downloaded'); };
+  const doPDF = () => window.print();
+  const doPNG = async () => {
+    if (!window.htmlToImage || !captureRef.current) { flash('PNG export unavailable'); return; }
+    setBusy('png');
+    try {
+      const bg = getComputedStyle(document.body).backgroundColor;
+      const dataUrl = await window.htmlToImage.toPng(captureRef.current, {
+        pixelRatio:2, backgroundColor:bg, style:{ margin:'0' }
+      });
+      const a = document.createElement('a');
+      a.href = dataUrl; a.download = 'klm-goms-results.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      flash('PNG image downloaded');
+    } catch(e) { flash('PNG export failed'); }
+    finally { setBusy(''); }
+  };
+
+  return h('div', { className:'app' },
+    // Header
+    h('header', { className:'app-head' },
+      h('div', { className:'brand' },
+        h('h1', null, 'ChartClock'),
+        h('div', { className:'tag' }, 'Estimate the time to complete a nursing documentation task using the Keystroke-Level Model. Set operator times, build a workflow step by step, and compare alternatives.'),
+        h('div', { className:'kbd-row' },
+          KLM_ORDER.map(c => h('span', { key:c, className:'opbadge op-' + c }, c))
+        )
+      ),
+      h('div', { className:'toolbar no-print' },
+        h('button', { className:'btn', onClick:doCopy }, h(Ico.copy), ' Copy'),
+        h('button', { className:'btn', onClick:doCSV }, h(Ico.csv), ' CSV'),
+        h('button', { className:'btn', onClick:doPDF }, h(Ico.print), ' PDF'),
+        h('button', { className:'btn', onClick:doPNG, disabled:busy==='png' }, h(Ico.image), ' ', busy==='png' ? 'Rendering\u2026' : 'PNG')
+      )
+    ),
+
+    h(ModelOverview, { open:overview, onToggle:() => setOverview(v => !v) }),
+
+    h('div', { style:{ height:'var(--gap)' } }),
+
+    // Main stack
+    h('div', { className:'stack' },
+      h('div', { className:'ref-col' },
+        h(OperatorTable, { times, setTime, onReset:resetTimes })
+      ),
+      h('div', { ref:captureRef, className:'stack' },
+        h(SequencesRegion, { sequences, times, updateSeq, removeSeq, dupSeq, addSeq })
+      )
+    ),
+
+    h('footer', { className:'foot' },
+      'Operator times default to the standard Keystroke-Level Model values (Card, S.\u00a0K., Moran, T.\u00a0P., & Newell, A., 1983, ',
+      h('em', null, 'The Psychology of Human-Computer Interaction'),
+      '). K defaults to the skilled-average typist (0.20\u00a0s). All times are editable. Estimates assume expert, error-free performance.'
+    ),
+
+    h('div', { className:'toast' + (toast ? ' show' : '') }, toast)
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>
