@@ -29,6 +29,7 @@
   --op-H: oklch(0.57 0.16 28);
   --op-M: oklch(0.55 0.13 150);
   --op-B: oklch(0.60 0.105 215);
+  --op-C: oklch(0.58 0.06 60);
   --shadow: 0 1px 2px rgba(15,23,42,.05), 0 1px 1px rgba(15,23,42,.04);
   --shadow-lg: 0 12px 32px -12px rgba(15,23,42,.22);
   --radius: 12px;
@@ -56,6 +57,7 @@
   --op-H: oklch(0.71 0.15 28);
   --op-M: oklch(0.72 0.13 150);
   --op-B: oklch(0.75 0.10 215);
+  --op-C: oklch(0.76 0.07 60);
   --shadow: 0 1px 2px rgba(0,0,0,.3);
   --shadow-lg: 0 16px 40px -14px rgba(0,0,0,.6);
 }
@@ -67,6 +69,7 @@
 .op-H { --seg: var(--op-H); }
 .op-M { --seg: var(--op-M); }
 .op-B { --seg: var(--op-B); }
+.op-C { --seg: var(--op-C); }
 
 /* ── Base ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -272,7 +275,22 @@ select.sel:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--acce
 .qa:active { transform: translateY(1px); }
 .empty { padding: 24px 16px; text-align: center; color: var(--faint); font-size: 13px; }
 
-/* ── Totals + breakdown ───────────────────────────────────── */
+/* ── Custom step inline time input ────────────────────────── */
+.step-custom-time {
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--line-strong); border-radius: 7px;
+  background: var(--surface); overflow: hidden; height: 28px; width: 90px;
+}
+.step-custom-time input {
+  width: 100%; border: 0; background: transparent; font: inherit;
+  font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;
+  font-size: 12px; text-align: right; padding: 0 5px; color: inherit; outline: none;
+  -moz-appearance: textfield;
+}
+.step-custom-time input::-webkit-inner-spin-button,
+.step-custom-time input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.step-custom-time .unit { padding: 0 7px 0 1px; color: var(--faint); font-size: 11px; }
+.step-custom-time:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-weak); }
 .seq-total {
   display: flex; align-items: baseline; justify-content: space-between;
   gap: 12px; padding: 13px 16px; background: var(--surface-2);
@@ -343,11 +361,23 @@ select.sel:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--acce
 <body>
 <div id="root"></div>
 
-<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "html-to-image": "https://esm.sh/html-to-image@1.11.11"
+  }
+}
+</script>
+<script type="module">
+import * as ReactLib from 'react';
+import * as ReactDOMLib from 'react-dom/client';
+import * as htmlToImage from 'html-to-image';
+window.React = ReactLib;
+window.ReactDOM = ReactDOMLib;
+window.htmlToImage = htmlToImage;
 
-<script>
 /* ── KLM Data ──────────────────────────────────────────────────────────── */
 const KLM_OPERATORS = [
   { code:'K', name:'Keystroke', desc:'Press a single key or keyboard button (e.g. typing a value, Tab, Enter). Time depends on typist skill.', def:0.20 },
@@ -355,6 +385,7 @@ const KLM_OPERATORS = [
   { code:'H', name:'Home',      desc:'Move the hand(s) between the keyboard and the mouse (or other input device) and back.', def:0.40 },
   { code:'M', name:'Mental act',desc:'Pause to think, decide, or locate the next target \u2014 the cognitive step before a physical action.', def:1.35 },
   { code:'B', name:'Button press',desc:'Press or release a mouse button. A full click is two B operators (press + release).', def:0.10 },
+  { code:'C', name:'Custom',    desc:'A user-defined step with a manually entered duration. Use for actions not covered by the standard operators.', def:0 },
 ];
 const KLM_ORDER = KLM_OPERATORS.map(o => o.code);
 const KLM_BY_CODE = Object.fromEntries(KLM_OPERATORS.map(o => [o.code, o]));
@@ -372,7 +403,7 @@ const K_PRESETS = [
 
 let __uid = 0;
 function klmId(prefix) { __uid++; return (prefix||'id') + '-' + Date.now().toString(36) + '-' + __uid; }
-function newStep(op) { return { id:klmId('step'), op:op||'M', note:'' }; }
+function newStep(op) { return { id:klmId('step'), op:op||'M', note:'', customTime:0 }; }
 function newSequence(name, steps) { return { id:klmId('seq'), name:name||'Untitled task', steps:steps||[] }; }
 
 function computeSequence(steps, times) {
@@ -380,7 +411,7 @@ function computeSequence(steps, times) {
   KLM_ORDER.forEach(c => { perOp[c] = { count:0, subtotal:0 }; });
   let total = 0;
   steps.forEach(s => {
-    const t = Number(times[s.op]) || 0;
+    const t = s.op === 'C' ? (Number(s.customTime) || 0) : (Number(times[s.op]) || 0);
     perOp[s.op].count++;
     perOp[s.op].subtotal += t;
     total += t;
@@ -413,7 +444,8 @@ function buildCSV(model) {
     lines.push(csvRow(['Task: ' + seq.name]), csvRow(['#','Operator','Name','Note','Time (s)']));
     seq.steps.forEach((s,i) => {
       const o = KLM_BY_CODE[s.op];
-      lines.push(csvRow([i+1, s.op, o.name, s.note, fmtSec(times[s.op])]));
+      const t = s.op === 'C' ? (Number(s.customTime) || 0) : times[s.op];
+      lines.push(csvRow([i+1, s.op, o.name, s.note, fmtSec(t)]));
     });
     lines.push(csvRow(['','','','Total (s)', fmtSec(r.total)]), '');
     lines.push(csvRow(['Breakdown','Count','Subtotal (s)']));
@@ -477,11 +509,9 @@ function loadState() {
   } catch(e) {}
   return { times: { ...KLM_DEFAULT_TIMES }, sequences: seedSequences(), overview: true };
 }
-</script>
 
-<script>
 /* ── React app (no JSX — plain createElement) ──────────────────────────── */
-const { createElement: h, useState, useEffect, useRef, useCallback, Fragment } = React;
+const { createElement: h, useState, useEffect, useRef, useCallback, Fragment } = ReactLib;
 
 /* ── SVG icon helper ─────────────────────────────────────────────────── */
 function Icon({ paths, size=16, sw=1.7 }) {
@@ -601,7 +631,9 @@ function OperatorTable({ times, setTime, onReset }) {
               )
             ),
             h('td', null,
-              h(TimeInput, { value:times[o.code], onChange:v => setTime(o.code, v) })
+              o.code === 'C'
+                ? h('span', { style:{ fontFamily:'"IBM Plex Mono",monospace', fontSize:'12px', color:'var(--faint)', fontStyle:'italic' } }, 'per step')
+                : h(TimeInput, { value:times[o.code], onChange:v => setTime(o.code, v) })
             )
           )
         ))
@@ -630,8 +662,32 @@ function Breakdown({ result }) {
   );
 }
 
+/* ── CustomTimeInput (inline, compact) ───────────────────────────────── */
+function CustomTimeInput({ value, onChange }) {
+  const [txt, setTxt] = useState(String(value || 0));
+  const focused = useRef(false);
+  useEffect(() => { if (!focused.current) setTxt(String(value || 0)); }, [value]);
+  const commit = raw => {
+    let n = parseFloat(raw);
+    if (isNaN(n)) n = 0;
+    n = Math.max(0, Math.min(999, n));
+    onChange(Math.round(n * 1000) / 1000);
+  };
+  return h('span', { className:'step-custom-time' },
+    h('input', {
+      type:'number', inputMode:'decimal', step:0.05, min:0, max:999,
+      value: txt,
+      onFocus: () => { focused.current = true; },
+      onChange: e => { setTxt(e.target.value); commit(e.target.value); },
+      onBlur: () => { focused.current = false; setTxt(String(value || 0)); },
+    }),
+    h('span', { className:'unit' }, 's')
+  );
+}
+
 /* ── StepRow ─────────────────────────────────────────────────────────── */
 function StepRow({ step, idx, total, time, onChange, onRemove, onMove }) {
+  const isCustom = step.op === 'C';
   return h('div', { className:'step' },
     h('span', { className:'step-idx' }, idx + 1),
     h('span', { className:'step-op op-' + step.op },
@@ -644,12 +700,17 @@ function StepRow({ step, idx, total, time, onChange, onRemove, onMove }) {
     ),
     h('input', {
       className:'step-note',
-      placeholder:'Optional note (e.g. \u201copen vitals flowsheet\u201d)',
+      placeholder: isCustom ? 'Describe this step\u2026' : 'Optional note (e.g. \u201copen vitals flowsheet\u201d)',
       value: step.note,
       onChange: e => onChange({ ...step, note:e.target.value })
     }),
     h('div', { style:{ display:'flex', alignItems:'center', gap:'6px' } },
-      h('span', { className:'step-time mono' }, fmtSec(time) + 's'),
+      isCustom
+        ? h(CustomTimeInput, {
+            value: step.customTime || 0,
+            onChange: v => onChange({ ...step, customTime:v })
+          })
+        : h('span', { className:'step-time mono' }, fmtSec(time) + 's'),
       h('div', { className:'step-acts no-print' },
         h('button', { className:'istep', title:'Move up', disabled:idx===0, onClick:()=>onMove(idx,-1) }, h(Ico.up)),
         h('button', { className:'istep', title:'Move down', disabled:idx===total-1, onClick:()=>onMove(idx,1) }, h(Ico.down)),
@@ -687,7 +748,8 @@ function SequenceCard({ seq, times, showChart, showMinutes, canRemove, onChange,
     h('div', { className:'step-list' },
       seq.steps.length === 0 && h('div', { className:'empty' }, 'No steps yet. Add operators below to build the workflow.'),
       seq.steps.map((s, i) => h(StepRow, {
-        key:s.id, step:s, idx:i, total:seq.steps.length, time:times[s.op],
+        key:s.id, step:s, idx:i, total:seq.steps.length,
+        time: s.op === 'C' ? (s.customTime || 0) : times[s.op],
         onChange:updateStep, onRemove:removeStep, onMove:moveStep
       }))
     ),
@@ -796,7 +858,7 @@ function App() {
     const i = p.findIndex(x => x.id === id);
     if (i < 0) return p;
     const src = p[i];
-    const copy = newSequence(src.name + ' (copy)', src.steps.map(s => ({ ...newStep(s.op), note:s.note })));
+    const copy = newSequence(src.name + ' (copy)', src.steps.map(s => ({ ...newStep(s.op), note:s.note, customTime:s.customTime||0 })));
     const next = p.slice();
     next.splice(i + 1, 0, copy);
     return next;
@@ -878,7 +940,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+ReactDOMLib.createRoot(document.getElementById('root')).render(h(App));
 </script>
 </body>
 </html>
