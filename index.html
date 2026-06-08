@@ -275,6 +275,10 @@ select.sel:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--acce
 .qa:active { transform: translateY(1px); }
 .empty { padding: 24px 16px; text-align: center; color: var(--faint); font-size: 13px; }
 
+/* ── Links ────────────────────────────────────────────────── */
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
 /* ── Custom step inline time input ────────────────────────── */
 .step-custom-time {
   display: inline-flex; align-items: center;
@@ -309,7 +313,76 @@ select.sel:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--acce
 .bdrow .c { color: var(--faint); font-family: "IBM Plex Mono", monospace; font-size: 11.5px; }
 .bdrow .v { margin-left: auto; font-family: "IBM Plex Mono", monospace; color: var(--muted); }
 
-/* ── Comparison ───────────────────────────────────────────── */
+/* ── Start position ───────────────────────────────────────── */
+.start-pos-wrap {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 13px 18px 14px;
+}
+.start-pos-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--muted);
+  white-space: nowrap; padding-top: 7px; flex-shrink: 0;
+}
+.start-pos-input {
+  flex: 1; border: 1px solid transparent; background: transparent;
+  font: inherit; font-size: 13.5px; color: var(--ink);
+  border-radius: 6px; padding: 5px 8px; outline: none; resize: none;
+  min-height: 32px; line-height: 1.45;
+}
+.start-pos-input::placeholder { color: var(--faint); }
+.start-pos-input:hover { background: var(--surface); border-color: var(--line); }
+.start-pos-input:focus { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-weak); }
+
+/* ── Savings calculator ───────────────────────────────────── */
+.savings-card { }
+.savings-hd {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; padding: 14px 18px 10px;
+}
+.savings-hd h2 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.savings-question {
+  padding: 0 18px 14px; font-size: 13.5px; color: var(--muted); line-height: 1.5;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.savings-question strong { color: var(--ink); }
+.rep-input {
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--accent-line); border-radius: 7px;
+  background: var(--accent-weak); overflow: hidden; height: 30px; width: 96px;
+}
+.rep-input input {
+  width: 100%; border: 0; background: transparent; font: inherit;
+  font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;
+  text-align: right; padding: 0 6px; color: var(--ink); outline: none;
+  -moz-appearance: textfield; font-size: 13.5px;
+}
+.rep-input input::-webkit-inner-spin-button,
+.rep-input input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.rep-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+.savings-rows { padding: 0 18px 16px; display: flex; flex-direction: column; gap: 10px; }
+.savings-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  align-items: center; gap: 12px;
+  background: var(--surface-2); border-radius: 10px; padding: 11px 14px;
+  border: 1px solid var(--line);
+}
+.savings-row.is-slowest {
+  background: var(--surface-3); opacity: 0.6;
+}
+.savings-name { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.savings-name .savings-badge {
+  display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--faint); background: var(--surface-3);
+  border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px;
+  margin-left: 7px; vertical-align: middle;
+}
+.savings-delta { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--muted); white-space: nowrap; text-align: right; }
+.savings-total { text-align: right; white-space: nowrap; }
+.savings-total .sv { font-family: "IBM Plex Mono", monospace; font-weight: 700; font-size: 18px; }
+.savings-total .sv.positive { color: var(--op-M); }
+.savings-total .sv.negative { color: var(--op-P); }
+.savings-total .sv-unit { font-size: 12px; color: var(--faint); margin-left: 3px; }
+.savings-none { padding: 18px; text-align: center; color: var(--faint); font-size: 13px; }
 .cmp-row {
   display: grid; grid-template-columns: 1fr auto; gap: 14px;
   align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line);
@@ -381,7 +454,7 @@ window.htmlToImage = htmlToImage;
 /* ── KLM Data ──────────────────────────────────────────────────────────── */
 const KLM_OPERATORS = [
   { code:'K', name:'Keystroke', desc:'Press a single key or keyboard button (e.g. typing a value, Tab, Enter). Time depends on typist skill.', def:0.20 },
-  { code:'P', name:'Point',     desc:'Move the pointer to a target on screen (a field, button, or menu item). Governed by Fitts\u2019s law.', def:1.10 },
+  { code:'P', name:'Point',     desc:'Move the pointer to a target on screen (a field, button, or menu item). Governed by Fitts\u2019s law.', descNode: true, def:1.10 },
   { code:'H', name:'Home',      desc:'Move the hand(s) between the keyboard and the mouse (or other input device) and back.', def:0.40 },
   { code:'M', name:'Mental act',desc:'Pause to think, decide, or locate the next target \u2014 the cognitive step before a physical action.', def:1.35 },
   { code:'B', name:'Button press',desc:'Press or release a mouse button. A full click is two B operators (press + release).', def:0.10 },
@@ -571,7 +644,7 @@ function ModelOverview({ open, onToggle }) {
       h('div', { className:'ov-grid' },
         h('div', null,
           h('h3', null, 'The model'),
-          h('p', null, 'The ', h('strong', null, 'Keystroke-Level Model'), ' (KLM), part of the GOMS family (Card, Moran & Newell, 1983), estimates how long an expert user takes to complete a routine task with no errors. The task is broken into a sequence of primitive ', h('strong', null, 'operators'), ', each with an empirically-derived duration.'),
+          h('p', null, 'The ', h('a', { href:'https://en.wikipedia.org/wiki/Keystroke-level_model', target:'_blank', rel:'noopener noreferrer' }, h('strong', null, 'Keystroke-Level Model')), ' (KLM), part of the GOMS family (Card, Moran & Newell, 1983), estimates how long an expert user takes to complete a routine task with no errors. The task is broken into a sequence of primitive ', h('strong', null, 'operators'), ', each with an empirically-derived duration.'),
           h('p', null, 'Total time is simply the sum of every operator in the sequence. Applied to the EHR, it predicts how long a charting workflow takes ', h('em', null, 'before'), ' you build or buy it \u2014 useful for comparing screen designs or documentation pathways.')
         ),
         h('div', null,
@@ -618,7 +691,13 @@ function OperatorTable({ times, setTime, onReset }) {
               )
             ),
             h('td', { style:{ color:'var(--muted)', fontSize:'13.5px', maxWidth:'52ch' } },
-              o.desc,
+              o.code === 'P'
+                ? h(Fragment, null,
+                    'Move the pointer to a target on screen (a field, button, or menu item). Governed by ',
+                    h('a', { href:'https://en.wikipedia.org/wiki/Fitts%27s_law', target:'_blank', rel:'noopener noreferrer' }, 'Fitts\u2019s law'),
+                    '.'
+                  )
+                : o.desc,
               o.code === 'K' && h('span', { className:'no-print', style:{ display:'block', marginTop:'8px' } },
                 h('select', {
                   className:'sel', style:{ height:'30px', fontSize:'12.5px' },
@@ -804,14 +883,105 @@ function ComparisonPanel({ sequences, times, showMinutes }) {
   );
 }
 
+/* ── SavingsCalculator ───────────────────────────────────────────────── */
+function SavingsCalculator({ sequences, times }) {
+  const [reps, setReps] = useState(5000);
+  const [repTxt, setRepTxt] = useState('5000');
+  const repFocused = useRef(false);
+
+  const results = sequences
+    .map(s => ({ seq:s, total: computeSequence(s.steps, times).total }))
+    .filter(x => x.total > 0);
+
+  if (results.length < 2) return null;
+
+  const slowest = results.reduce((a, b) => a.total >= b.total ? a : b);
+  const n = Math.max(1, Math.round(Number(reps) || 1));
+
+  const commitReps = raw => {
+    let v = parseInt(raw, 10);
+    if (isNaN(v) || v < 1) v = 1;
+    if (v > 10000000) v = 10000000;
+    setReps(v);
+  };
+
+  function fmtSaved(seconds) {
+    const abs = Math.abs(seconds);
+    if (abs < 60) return { str: fmtSec(seconds), unit: 's' };
+    if (abs < 3600) {
+      const m = (seconds / 60);
+      return { str: (Math.round(m * 10) / 10).toFixed(1), unit: 'min' };
+    }
+    const hr = (seconds / 3600);
+    return { str: (Math.round(hr * 10) / 10).toFixed(1), unit: 'hr' };
+  }
+
+  return h('div', { className:'card savings-card' },
+    h('div', { className:'savings-hd' },
+      h('h2', null, 'Time savings calculator')
+    ),
+    h('div', { className:'savings-question' },
+      h('strong', null, 'The slowest workflow is our current one.'),
+      ' For each faster alternative, how much time is saved over\u00a0',
+      h('span', { className:'rep-input' },
+        h('input', {
+          type:'number', inputMode:'numeric', min:1, max:10000000,
+          value: repTxt,
+          onFocus: () => { repFocused.current = true; },
+          onChange: e => { setRepTxt(e.target.value); commitReps(e.target.value); },
+          onBlur: () => { repFocused.current = false; setRepTxt(String(n)); },
+        })
+      ),
+      '\u00a0repetitions?'
+    ),
+    h('div', { className:'savings-rows' },
+      results.map(({ seq, total }) => {
+        const isSlowest = seq.id === slowest.seq.id;
+        const deltaSec = (slowest.total - total) * n;
+        const fmt = fmtSaved(deltaSec);
+        const isPositive = deltaSec > 0;
+        return h('div', { key:seq.id, className:'savings-row' + (isSlowest ? ' is-slowest' : '') },
+          h('div', { className:'savings-name' },
+            seq.name,
+            isSlowest && h('span', { className:'savings-badge' }, 'baseline')
+          ),
+          h('div', { className:'savings-delta' },
+            isSlowest ? '\u2014' : (isPositive ? '\u2212' : '+') + fmtSec(Math.abs(slowest.total - total)) + 's\u00a0\xd7\u00a0' + n.toLocaleString()
+          ),
+          h('div', { className:'savings-total' },
+            isSlowest
+              ? h('span', { style:{ color:'var(--faint)', fontFamily:'"IBM Plex Mono",monospace', fontSize:'13px' } }, fmtSec(total) + 's / rep')
+              : h('span', { className:'sv ' + (isPositive ? 'positive' : 'negative') },
+                  (isPositive ? '+' : '\u2212') + fmt.str,
+                  h('span', { className:'sv-unit' }, fmt.unit, ' saved')
+                )
+          )
+        );
+      })
+    )
+  );
+}
+
 /* ── SequencesRegion ─────────────────────────────────────────────────── */
-function SequencesRegion({ sequences, times, updateSeq, removeSeq, dupSeq, addSeq }) {
+function SequencesRegion({ sequences, times, startPos, setStartPos, updateSeq, removeSeq, dupSeq, addSeq }) {
   return h(Fragment, null,
     h('div', { className:'section-label' },
       'Workflows\u00a0',
       h('span', { className:'ln' }),
       h('button', { className:'btn sm no-print', onClick:addSeq },
         h(Ico.plus, { size:14 }), ' Add task'
+      )
+    ),
+    h('div', { className:'card' },
+      h('div', { className:'start-pos-wrap' },
+        h('span', { className:'start-pos-label' }, 'Start position'),
+        h('textarea', {
+          className:'start-pos-input',
+          rows: 2,
+          placeholder: 'Describe where the user\u2019s hands and cursor are at the start of each workflow (e.g. \u201chands on keyboard, cursor at top of chart\u201d)\u2026',
+          value: startPos,
+          onChange: e => setStartPos(e.target.value),
+        })
       )
     ),
     h('div', { className:'seq-wrap' },
@@ -822,7 +992,8 @@ function SequencesRegion({ sequences, times, updateSeq, removeSeq, dupSeq, addSe
         onChange: updateSeq, onRemove: removeSeq, onDuplicate: dupSeq
       }))
     ),
-    sequences.length > 1 && h(ComparisonPanel, { sequences, times, showMinutes:true })
+    sequences.length > 1 && h(ComparisonPanel, { sequences, times, showMinutes:true }),
+    sequences.length > 1 && h(SavingsCalculator, { sequences, times })
   );
 }
 
@@ -832,6 +1003,7 @@ function App() {
   const [times, setTimes] = useState(init.times);
   const [sequences, setSequences] = useState(init.sequences);
   const [overview, setOverview] = useState(init.overview);
+  const [startPos, setStartPos] = useState(init.startPos || '');
   const [toast, setToast] = useState('');
   const [busy, setBusy] = useState('');
   const captureRef = useRef(null);
@@ -839,7 +1011,7 @@ function App() {
 
   // Persist to localStorage
   useEffect(() => {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ times, sequences, overview })); } catch(e) {}
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ times, sequences, overview, startPos })); } catch(e) {}
   }, [times, sequences, overview]);
 
   const flash = msg => {
@@ -926,7 +1098,7 @@ function App() {
         h(OperatorTable, { times, setTime, onReset:resetTimes })
       ),
       h('div', { ref:captureRef, className:'stack' },
-        h(SequencesRegion, { sequences, times, updateSeq, removeSeq, dupSeq, addSeq })
+        h(SequencesRegion, { sequences, times, startPos, setStartPos, updateSeq, removeSeq, dupSeq, addSeq })
       )
     ),
 
